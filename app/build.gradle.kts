@@ -54,6 +54,7 @@ dependencies {
 
     // Room
     implementation("androidx.room:room-runtime:2.7.0")
+    implementation(libs.androidx.junit.ktx)
     ksp("androidx.room:room-compiler:2.7.0")
     implementation("androidx.room:room-ktx:2.7.0")
 
@@ -65,12 +66,13 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-
+    androidTestImplementation(libs.truth)  // <- Em vez de hardcode!
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation("androidx.room:room-testing:2.7.0")
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
-
+    androidTestImplementation("com.google.truth:truth:1.2.0")
+    androidTestImplementation("androidx.room:room-testing:2.7.0")
 }

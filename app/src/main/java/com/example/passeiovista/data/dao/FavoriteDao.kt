@@ -6,6 +6,8 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.passeiovista.data.entity.Favorite
+import com.example.passeiovista.data.entity.Poi
+import com.example.passeiovista.data.model.NearbyFavorite
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -21,4 +23,22 @@ interface FavoriteDao {
 
     @Query("SELECT * FROM favorites WHERE userId = :userId AND poiId = :poiId LIMIT 1")
     suspend fun getFavorite(userId: String, poiId: String): Favorite?
+
+    @Query("""
+    SELECT f.*, p.name, p.latitude, p.longitude,
+           (6371000 * acos(cos(radians(:lat)) * cos(radians(p.latitude)) * 
+                           cos(radians(p.longitude) - radians(:lon)) + 
+                           sin(radians(:lat)) * sin(radians(p.latitude)))) AS distanciaMetros
+    FROM favorites f 
+    INNER JOIN pois p ON f.poiId = p.id 
+    WHERE f.userId = :userId 
+      AND (6371000 * acos(cos(radians(:lat)) * cos(radians(p.latitude)) * 
+                           cos(radians(p.longitude) - radians(:lon)) + 
+                           sin(radians(:lat)) * sin(radians(p.latitude)))) < :maxDistance
+    ORDER BY distanciaMetros
+""")
+    fun getNearbyFavorites(
+        userId: String, lat: Double, lon: Double, maxDistance: Double  // metros
+    ): Flow<List<NearbyFavorite>>
 }
+

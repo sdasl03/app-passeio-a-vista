@@ -18,15 +18,13 @@ import java.time.LocalDateTime
 )
 data class Poi(
     @PrimaryKey val id: String,
-    val name: String,
-    val description: String,
-    val latitude: Double,
-    val longitude: Double,
-    val address: String,
-    val openingHours: String?,
-    val price: String?,
-    val accessibility: String,
-    val categoryId: String,
+    val name: String = "",
+    val latitude: Double = 0.0,
+    val longitude: Double= 0.0,
+    val description: String = "",  // <- Default vazio
+    val address: String? = null,   // Nullable OK
+    val accessibility: String = "unknown",
+    val categoryId: String = "",
     val isOpenNow: Boolean = false,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now()
