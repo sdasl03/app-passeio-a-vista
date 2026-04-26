@@ -6,8 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.passeiovista.data.entity.Favorite
-import com.example.passeiovista.data.entity.Poi
-import com.example.passeiovista.data.model.NearbyFavorite
+import com.example.passeiovista.data.model.FavoriteWithLocation
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -18,6 +17,9 @@ interface FavoriteDao {
     @Delete
     suspend fun deleteFavorite(favorite: Favorite): Int
 
+    @Query("DELETE FROM favorites WHERE userId = :userId")
+    suspend fun deleteAllFavorites(userId: String = "testUser")
+
     @Query("SELECT * FROM favorites WHERE userId = :userId ORDER BY createdAt DESC")
     fun getFavoritesByUser(userId: String): Flow<List<Favorite>>
 
@@ -25,20 +27,13 @@ interface FavoriteDao {
     suspend fun getFavorite(userId: String, poiId: String): Favorite?
 
     @Query("""
-    SELECT f.*, p.name, p.latitude, p.longitude,
-           (6371000 * acos(cos(radians(:lat)) * cos(radians(p.latitude)) * 
-                           cos(radians(p.longitude) - radians(:lon)) + 
-                           sin(radians(:lat)) * sin(radians(p.latitude)))) AS distanciaMetros
+SELECT f.*, p.name, p.latitude, p.longitude
     FROM favorites f 
     INNER JOIN pois p ON f.poiId = p.id 
-    WHERE f.userId = :userId 
-      AND (6371000 * acos(cos(radians(:lat)) * cos(radians(p.latitude)) * 
-                           cos(radians(p.longitude) - radians(:lon)) + 
-                           sin(radians(:lat)) * sin(radians(p.latitude)))) < :maxDistance
-    ORDER BY distanciaMetros
+    WHERE f.userId = :userId
 """)
-    fun getNearbyFavorites(
-        userId: String, lat: Double, lon: Double, maxDistance: Double  // metros
-    ): Flow<List<NearbyFavorite>>
+    fun getFavoritesWithLocation(
+        userId: String
+    ): Flow<List<FavoriteWithLocation>>
 }
 
