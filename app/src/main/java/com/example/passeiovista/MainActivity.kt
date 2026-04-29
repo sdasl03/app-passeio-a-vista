@@ -4,44 +4,35 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.lifecycleScope
+import com.example.passeiovista.data.database.DatabaseProvider
+import com.example.passeiovista.data.database.DatabaseSeeder
+import com.example.passeiovista.data.repositories.PoiRepository
+import com.example.passeiovista.ui.PasseioApp
 import com.example.passeiovista.ui.theme.PasseioÀVistaTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val db = DatabaseProvider.get(this)
+        val poiRepository = PoiRepository(db.poiDao())
+
+        lifecycleScope.launch {
+            DatabaseSeeder(
+                categoryDao = db.categoryDao(),
+                poiDao = db.poiDao(),
+                favoriteDao = db.favoriteDao(),
+                routeDao = db.routeDao(),
+                routeItemDao = db.routeItemDao()
+            ).seed()
+        }
+
         enableEdgeToEdge()
         setContent {
             PasseioÀVistaTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                PasseioApp(poiRepository = poiRepository)
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    PasseioÀVistaTheme {
-        Greeting("Android")
     }
 }

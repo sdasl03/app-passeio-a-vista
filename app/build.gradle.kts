@@ -50,7 +50,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation("androidx.compose.material:material-icons-extended")
 
+    implementation("org.osmdroid:osmdroid-android:6.1.20")
 
     // Room
     implementation("androidx.room:room-runtime:2.7.0")

@@ -11,7 +11,6 @@ import com.example.passeiovista.data.entity.Poi
 import com.example.passeiovista.data.entity.Route
 import com.example.passeiovista.data.entity.RouteItem
 import java.time.LocalDateTime
-import java.util.UUID
 
 class DatabaseSeeder(
     private val categoryDao: CategoryDao,
@@ -26,6 +25,9 @@ class DatabaseSeeder(
         val poi1Id = "poi_1"
         val poi2Id = "poi_2"
         val routeId = "route_1"
+        val favoriteId = "favorite_1"
+
+        if (categoryDao.getCategoryById(categoryId) != null) return
 
         categoryDao.insertCategory(
             Category(
@@ -67,7 +69,7 @@ class DatabaseSeeder(
 
         favoriteDao.insertFavorite(
             Favorite(
-                id = UUID.randomUUID().toString(),
+                id = favoriteId,
                 userId = userId,
                 poiId = poi1Id,
                 createdAt = LocalDateTime.now()
