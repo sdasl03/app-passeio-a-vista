@@ -17,8 +17,11 @@ interface FavoriteDao {
     @Delete
     suspend fun deleteFavorite(favorite: Favorite): Int
 
+    @Query("DELETE FROM favorites WHERE userId = :userId AND poiId = :poiId")
+    suspend fun deleteFavorite(userId: String, poiId: String): Int
+
     @Query("DELETE FROM favorites WHERE userId = :userId")
-    suspend fun deleteAllFavorites(userId: String = "testUser")
+    suspend fun deleteAllFavorites(userId: String)
 
     @Query("SELECT * FROM favorites WHERE userId = :userId ORDER BY createdAt DESC")
     fun getFavoritesByUser(userId: String): Flow<List<Favorite>>
@@ -31,6 +34,7 @@ SELECT f.*, p.name, p.latitude, p.longitude
     FROM favorites f 
     INNER JOIN pois p ON f.poiId = p.id 
     WHERE f.userId = :userId
+    ORDER BY f.createdAt DESC
 """)
     fun getFavoritesWithLocation(
         userId: String

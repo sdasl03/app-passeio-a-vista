@@ -2,11 +2,62 @@ package com.example.passeiovista.data.repositories
 
 import android.location.Location
 import com.example.passeiovista.data.dao.FavoriteDao
+import com.example.passeiovista.data.entity.Favorite
+import com.example.passeiovista.data.model.FavoriteWithLocation
 import com.example.passeiovista.data.model.NearbyFavorite
+import java.time.LocalDateTime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class FavoriteRepository( private val favoriteDao: FavoriteDao) {
+
+    fun getFavoritesByUser(
+        userId: String
+    ): Flow<List<Favorite>> = favoriteDao.getFavoritesByUser(userId)
+
+    fun getFavoritePoiIds(
+        userId: String
+    ): Flow<Set<String>> = favoriteDao.getFavoritesByUser(userId)
+        .map { favorites -> favorites.map { it.poiId }.toSet() }
+
+    fun getFavoritesWithLocation(
+        userId: String
+    ): Flow<List<FavoriteWithLocation>> = favoriteDao.getFavoritesWithLocation(userId)
+
+    suspend fun addFavorite(
+        userId: String,
+        poiId: String
+    ) {
+        favoriteDao.insertFavorite(
+            Favorite(
+                id = favoriteId(userId, poiId),
+                userId = userId,
+                poiId = poiId,
+                createdAt = LocalDateTime.now()
+            )
+        )
+    }
+
+    suspend fun removeFavorite(
+        userId: String,
+        poiId: String
+    ) {
+        favoriteDao.deleteFavorite(userId = userId, poiId = poiId)
+    }
+
+    suspend fun toggleFavorite(
+        userId: String,
+        poiId: String
+    ): Boolean {
+        val existing = favoriteDao.getFavorite(userId = userId, poiId = poiId)
+        return if (existing == null) {
+            addFavorite(userId = userId, poiId = poiId)
+            true
+        } else {
+            removeFavorite(userId = userId, poiId = poiId)
+            false
+        }
+    }
 
     fun getNearbyFavorites(
         userId: String,
@@ -34,4 +85,6 @@ class FavoriteRepository( private val favoriteDao: FavoriteDao) {
         Location.distanceBetween(lat1, lon1, lat2, lon2, results)
         return results[0].toDouble()  // Metros
     }
+
+    private fun favoriteId(userId: String, poiId: String): String = "fav_${userId}_$poiId"
 }
