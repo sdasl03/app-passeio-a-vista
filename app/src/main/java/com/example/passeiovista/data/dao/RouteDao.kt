@@ -20,4 +20,10 @@ interface RouteDao {
 
     @Query("DELETE FROM routes WHERE id = :routeId")
     suspend fun deleteRoute(routeId: String): Int
+
+    @Query("SELECT * FROM routes WHERE id = :routeId")
+    suspend fun getRouteById(routeId: Long): Route?
+
+    @Query("DELETE FROM routes WHERE id = :routeId")
+    suspend fun deleteRouteById(routeId: Long)
 }
