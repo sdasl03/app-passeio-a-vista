@@ -11,6 +11,7 @@ import com.example.passeiovista.data.entity.RoutePoi
 import com.example.passeiovista.data.model.RoutePoiModel
 
 import com.example.passeiovista.data.model.RouteSummary
+import kotlinx.coroutines.flow.Flow
 
 class RouteRepository(private val db: AppDatabase,
     private val routeDao: RouteDao, private val routePoiDao: RoutePoiDao
@@ -93,6 +94,53 @@ class RouteRepository(private val db: AppDatabase,
 
             routePoiDao.insertAll(routePois)
             routeId
+        }
+    }
+
+    suspend fun updateRoute(
+        routeId: Long,
+        name: String,
+        userId: String,
+        selectedPois: List<Poi>,
+        startLat: Double,
+        startLon: Double
+    ) {
+        val summary = buildRouteSummary(selectedPois, startLat, startLon)
+
+        db.withTransaction {
+            routePoiDao.deletePoisForRoute(routeId)
+
+            routeDao.updateRoute(
+                Route(
+                    id = routeId,
+                    userId = userId,
+                    name = name,
+                    totalDistanceMeters = summary.totalDistanceMeters,
+                    totalEstimatedMinutes = summary.totalEstimatedMinutes
+                )
+            )
+
+            routePoiDao.insertAll(
+                summary.orderedPois.mapIndexed { index, item ->
+                    RoutePoi(
+                        routeId = routeId,
+                        poiId = item.poi.id,
+                        position = index,
+                        estimatedStopTime = 0
+                    )
+                }
+            )
+        }
+    }
+
+    fun getRoutesByUser(userId: String): Flow<List<Route>> = routeDao.getRoutesByUser(userId)
+
+    fun getRoutePois(routeId: Long): Flow<List<RoutePoi>> = routePoiDao.getPoisForRoute(routeId)
+
+    suspend fun deleteRoute(routeId: Long) {
+        db.withTransaction {
+            routePoiDao.deletePoisForRoute(routeId)
+            routeDao.deleteRouteById(routeId)
         }
     }
 
