@@ -1,0 +1,69 @@
+# Passeio à Vista — RS03 Offline Sync
+
+## Desenvolvedor
+Bruno
+
+## Estado
+Em progresso
+
+## Story Points
+7 SP
+
+## Requisito
+RS03
+
+## Prioridade
+Média
+
+## Descrição
+O utilizador deve poder editar favoritos e roteiros mesmo sem ligação à internet. As alterações ficam guardadas localmente e são sincronizadas automaticamente quando a conexão for restabelecida.
+
+## Funcionalidades incluídas
+- Edição offline de favoritos/roteiros;
+- Base de dados local com Room;
+- Fila de alterações pendentes;
+- WorkManager para sincronização em plano de fundo;
+- Indicador visual de estado: `Sincronizando...`, `Sincronizado` e alterações pendentes;
+- Estrutura pronta para integração futura com API REST.
+
+## Estrutura principal
+```text
+app/src/main/java/mz/uab/passeioavista/
+├── MainActivity.kt
+├── data/
+│   ├── AppDatabase.kt
+│   ├── FavoriteRepository.kt
+│   ├── FavoriteRouteDao.kt
+│   ├── FavoriteRouteEntity.kt
+│   ├── PendingChangeDao.kt
+│   └── PendingChangeEntity.kt
+├── sync/
+│   ├── SyncScheduler.kt
+│   └── SyncWorker.kt
+└── ui/
+    └── MainViewModel.kt
+```
+
+## Como executar
+1. Abrir o projecto no Android Studio.
+2. Esperar o Gradle sincronizar.
+3. Executar a aplicação num emulador ou telemóvel Android.
+4. Clicar em `Adicionar favorito offline`.
+5. Editar o primeiro favorito.
+6. Confirmar o estado `Sincronizando...` e depois `Sincronizado`.
+
+## Observação técnica
+A sincronização com API REST real ainda está preparada como ponto de integração. Nesta versão académica, a sincronização é simulada localmente no `SyncWorker`, permitindo demonstrar o fluxo offline-first, a fila de alterações pendentes e a execução em background.
+
+## Por fazer
+- Finalizar integração com API real;
+- Testar sincronização online com backend;
+- Implementar resolução de conflitos;
+- Melhorar logs e mensagens de erro.
+
+## Sugestão de commit
+```bash
+git add .
+git commit -m "Implement RS03 offline sync for favorites and routes"
+git push origin main
+```

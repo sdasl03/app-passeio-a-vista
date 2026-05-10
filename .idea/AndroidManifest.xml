@@ -1,0 +1,2 @@
+@echo off
+echo Abra este projecto no Android Studio. O Android Studio ira gerar/usar o Gradle Wrapper automaticamente se necessario.
