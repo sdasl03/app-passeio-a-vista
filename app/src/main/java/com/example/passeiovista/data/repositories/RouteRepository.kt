@@ -9,6 +9,7 @@ import com.example.passeiovista.data.entity.Poi
 import com.example.passeiovista.data.entity.Route
 import com.example.passeiovista.data.entity.RoutePoi
 import com.example.passeiovista.data.model.RoutePoiModel
+import com.example.passeiovista.data.model.RoutePoiWithPoi
 
 import com.example.passeiovista.data.model.RouteSummary
 import kotlinx.coroutines.flow.Flow
@@ -135,7 +136,11 @@ class RouteRepository(private val db: AppDatabase,
 
     fun getRoutesByUser(userId: String): Flow<List<Route>> = routeDao.getRoutesByUser(userId)
 
+    suspend fun getRoute(routeId: Long): Route? = routeDao.getRouteById(routeId)
+
     fun getRoutePois(routeId: Long): Flow<List<RoutePoi>> = routePoiDao.getPoisForRoute(routeId)
+
+    fun getRouteWithPois(routeId: Long): Flow<List<RoutePoiWithPoi>> = routePoiDao.getRouteWithPois(routeId)
 
     suspend fun deleteRoute(routeId: Long) {
         db.withTransaction {

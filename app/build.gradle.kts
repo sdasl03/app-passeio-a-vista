@@ -41,6 +41,18 @@ android {
     }
 }
 
+tasks.whenTaskAdded {
+    if (name == "testDebugUnitTest") {
+        val testTask = this as? org.gradle.api.tasks.testing.Test ?: return@whenTaskAdded
+        val kotlinTestClassesDir =
+            layout.buildDirectory.dir(
+                "intermediates/built_in_kotlinc/debugUnitTest/compileDebugUnitTestKotlin/classes"
+            ).get().asFile
+        testTask.testClassesDirs = testTask.testClassesDirs + files(kotlinTestClassesDir)
+        testTask.classpath = testTask.classpath + files(kotlinTestClassesDir)
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -51,6 +63,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.navigation:navigation-compose:2.8.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.1")
 
     implementation("org.osmdroid:osmdroid-android:6.1.20")
 

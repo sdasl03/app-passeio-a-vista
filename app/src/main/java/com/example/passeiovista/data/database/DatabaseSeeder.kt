@@ -4,12 +4,12 @@ import com.example.passeiovista.data.dao.CategoryDao
 import com.example.passeiovista.data.dao.FavoriteDao
 import com.example.passeiovista.data.dao.PoiDao
 import com.example.passeiovista.data.dao.RouteDao
-import com.example.passeiovista.data.dao.RouteItemDao
+import com.example.passeiovista.data.dao.RoutePoiDao
 import com.example.passeiovista.data.entity.Category
 import com.example.passeiovista.data.entity.Favorite
 import com.example.passeiovista.data.entity.Poi
 import com.example.passeiovista.data.entity.Route
-import com.example.passeiovista.data.entity.RouteItem
+import com.example.passeiovista.data.entity.RoutePoi
 import java.time.LocalDateTime
 
 class DatabaseSeeder(
@@ -17,14 +17,13 @@ class DatabaseSeeder(
     private val poiDao: PoiDao,
     private val favoriteDao: FavoriteDao,
     private val routeDao: RouteDao,
-    private val routeItemDao: RouteItemDao
+    private val routePoiDao: RoutePoiDao
 ) {
     suspend fun seed() {
         val userId = "user_demo"
         val categoryId = "cat_museums"
         val poi1Id = "poi_1"
         val poi2Id = "poi_2"
-        val routeId = "route_1"
         val favoriteId = "favorite_1"
 
         if (categoryDao.getCategoryById(categoryId) != null) return
@@ -76,20 +75,20 @@ class DatabaseSeeder(
             )
         )
 
-        routeDao.insertRoute(
+        val routeId = routeDao.insertRoute(
             Route(
-                id = routeId,
                 userId = userId,
                 name = "Roteiro Demo",
                 createdAt = LocalDateTime.now(),
-                totalEstimatedTimeMinutes = 120
+                totalEstimatedMinutes = 120,
+                totalDistanceMeters = 0.0
             )
         )
 
-        routeItemDao.insertRouteItems(
+        routePoiDao.insertAll(
             listOf(
-                RouteItem(routeId = routeId, poiId = poi1Id, orderIndex = 1, estimatedStopMinutes = 45),
-                RouteItem(routeId = routeId, poiId = poi2Id, orderIndex = 2, estimatedStopMinutes = 30)
+                RoutePoi(routeId = routeId, poiId = poi1Id, position = 0, estimatedStopTime = 45),
+                RoutePoi(routeId = routeId, poiId = poi2Id, position = 1, estimatedStopTime = 30)
             )
         )
     }

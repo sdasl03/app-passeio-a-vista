@@ -6,7 +6,7 @@ import java.time.LocalDateTime
 
 @Entity(tableName = "routes")
 data class Route(
-    @PrimaryKey val id: Long=0L,
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val userId: String,
     val name: String,
     val createdAt: LocalDateTime = LocalDateTime.now(),

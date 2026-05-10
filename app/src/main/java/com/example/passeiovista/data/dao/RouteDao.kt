@@ -20,12 +20,6 @@ interface RouteDao {
     fun getRoutesByUser(userId: String): Flow<List<Route>>
 
     @Query("SELECT * FROM routes WHERE id = :routeId LIMIT 1")
-    suspend fun getRouteById(routeId: String): Route?
-
-    @Query("DELETE FROM routes WHERE id = :routeId")
-    suspend fun deleteRoute(routeId: String): Int
-
-    @Query("SELECT * FROM routes WHERE id = :routeId")
     suspend fun getRouteById(routeId: Long): Route?
 
     @Query("DELETE FROM routes WHERE id = :routeId")

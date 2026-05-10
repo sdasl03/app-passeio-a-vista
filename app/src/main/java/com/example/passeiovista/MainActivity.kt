@@ -9,6 +9,7 @@ import com.example.passeiovista.data.database.DatabaseProvider
 import com.example.passeiovista.data.database.DatabaseSeeder
 import com.example.passeiovista.data.repositories.FavoriteRepository
 import com.example.passeiovista.data.repositories.PoiRepository
+import com.example.passeiovista.data.repositories.RouteRepository
 import com.example.passeiovista.ui.PasseioApp
 import com.example.passeiovista.ui.theme.PasseioÀVistaTheme
 import kotlinx.coroutines.launch
@@ -19,6 +20,7 @@ class MainActivity : ComponentActivity() {
         val db = DatabaseProvider.get(this)
         val poiRepository = PoiRepository(db.poiDao())
         val favoriteRepository = FavoriteRepository(db.favoriteDao())
+        val routeRepository = RouteRepository(db, db.routeDao(), db.routePoiDao())
         val userId = "user_demo"
 
         lifecycleScope.launch {
@@ -27,7 +29,7 @@ class MainActivity : ComponentActivity() {
                 poiDao = db.poiDao(),
                 favoriteDao = db.favoriteDao(),
                 routeDao = db.routeDao(),
-                routeItemDao = db.routeItemDao()
+                routePoiDao = db.routePoiDao()
             ).seed()
         }
 
@@ -37,6 +39,7 @@ class MainActivity : ComponentActivity() {
                 PasseioApp(
                     poiRepository = poiRepository,
                     favoriteRepository = favoriteRepository,
+                    routeRepository = routeRepository,
                     userId = userId
                 )
             }
