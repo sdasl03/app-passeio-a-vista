@@ -6,9 +6,10 @@ import java.time.LocalDateTime
 
 @Entity(tableName = "routes")
 data class Route(
-    @PrimaryKey val id: String,
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val userId: String,
     val name: String,
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    val totalEstimatedTimeMinutes: Int = 0
+    val totalEstimatedMinutes: Int = 0,
+    val totalDistanceMeters: Double = 0.0
 )

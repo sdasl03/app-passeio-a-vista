@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.example.passeiovista.data.entity.Route
 import kotlinx.coroutines.flow.Flow
 
@@ -12,12 +13,15 @@ interface RouteDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRoute(route: Route): Long
 
+    @Update
+    suspend fun updateRoute(route: Route)
+
     @Query("SELECT * FROM routes WHERE userId = :userId ORDER BY createdAt DESC")
     fun getRoutesByUser(userId: String): Flow<List<Route>>
 
     @Query("SELECT * FROM routes WHERE id = :routeId LIMIT 1")
-    suspend fun getRouteById(routeId: String): Route?
+    suspend fun getRouteById(routeId: Long): Route?
 
     @Query("DELETE FROM routes WHERE id = :routeId")
-    suspend fun deleteRoute(routeId: String): Int
+    suspend fun deleteRouteById(routeId: Long)
 }
