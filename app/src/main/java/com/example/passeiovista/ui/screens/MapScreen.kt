@@ -72,6 +72,7 @@ fun MapScreen(
     pois: List<Poi>,
     favoriteRepository: FavoriteRepository,
     userId: String,
+    onUserLocationUpdated: (Location?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -95,9 +96,10 @@ fun MapScreen(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         if (granted) {
             userLocation = getLastKnownLocation(context)
+            onUserLocationUpdated(userLocation)
             userLocation?.let { loc ->
                 mapView?.controller?.animateTo(GeoPoint(loc.latitude, loc.longitude))
                 mapView?.controller?.setZoom(16.0)
@@ -210,10 +212,11 @@ fun MapScreen(
                 onClick = {
                     val hasPermission =
                         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
                     if (hasPermission) {
                         userLocation = getLastKnownLocation(context)
+                        onUserLocationUpdated(userLocation)
                         userLocation?.let { loc ->
                             mapView?.controller?.animateTo(GeoPoint(loc.latitude, loc.longitude))
                             mapView?.controller?.setZoom(16.0)
