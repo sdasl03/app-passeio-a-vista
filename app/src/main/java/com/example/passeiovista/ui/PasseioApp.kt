@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
@@ -37,12 +38,9 @@ import com.example.passeiovista.ui.screens.FavoritesSheet
 import com.example.passeiovista.ui.screens.MapScreen
 import com.example.passeiovista.ui.screens.RouteDetailScreen
 import com.example.passeiovista.ui.screens.RoutesScreen
-
-sealed interface FavoritesUiState {
-    data object Loading : FavoritesUiState
-    data class Data(val favorites: List<FavoriteWithLocation>) : FavoritesUiState
-    data class Error(val message: String) : FavoritesUiState
-}
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.launch
 
 private object Destinations {
     const val Map = "map"
@@ -65,8 +63,10 @@ fun PasseioApp(
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    val scope = rememberCoroutineScope()
 
     var showFavorites by remember { mutableStateOf(false) }
+
     val favoritesUiState by produceState<FavoritesUiState>(
         initialValue = FavoritesUiState.Loading,
         key1 = favoriteRepository,
@@ -106,8 +106,7 @@ fun PasseioApp(
                     }
                 }
             )
-        }
-        ,
+        },
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
@@ -151,7 +150,10 @@ fun PasseioApp(
                 MapScreen(
                     pois = pois,
                     favoriteRepository = favoriteRepository,
-                    userId = userId
+                    userId = userId,
+                    onUserLocationUpdated = {
+                        // TODO: Guardar as coordenadas reais do GPS para usar no Roteiro
+                    }
                 )
             }
 
@@ -183,7 +185,33 @@ fun PasseioApp(
     if (showFavorites) {
         FavoritesSheet(
             state = favoritesUiState,
-            onDismissRequest = { showFavorites = false }
+            onDismissRequest = { showFavorites = false },
+            onCreateRouteClick = { customName, selected ->
+                scope.launch {
+                    if (selected.isNotEmpty()) {
+                        val finalName = customName.ifBlank {
+                            val timeSuffix = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+                            "Roteiro de $timeSuffix"
+                        }
+
+                        val poisList = pois.filter { dbPoi ->
+                            selected.any { fav -> fav.poiId == dbPoi.id }
+                        }
+
+                        if (poisList.isNotEmpty()) {
+                            routeRepository.createRoute(
+                                name = finalName,
+                                userId = userId,
+                                selectedPois = poisList,
+                                startLat = poisList[0].latitude,
+                                startLon = poisList[0].longitude
+                            )
+                            showFavorites = false
+                            navController.navigate(Destinations.Routes)
+                        }
+                    }
+                }
+            }
         )
     }
 }
