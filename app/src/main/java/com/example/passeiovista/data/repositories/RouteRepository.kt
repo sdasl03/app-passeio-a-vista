@@ -14,8 +14,11 @@ import com.example.passeiovista.data.model.RoutePoiWithPoi
 import com.example.passeiovista.data.model.RouteSummary
 import kotlinx.coroutines.flow.Flow
 
-class RouteRepository(private val db: AppDatabase,
-    private val routeDao: RouteDao, private val routePoiDao: RoutePoiDao
+class RouteRepository(
+    private val db: AppDatabase,
+    private val routeDao: RouteDao,
+    private val routePoiDao: RoutePoiDao,
+    private val pendingSyncRepository: PendingSyncRepository
 ) {
     fun buildRouteSummary(
         selectedPois: List<Poi>,
@@ -94,6 +97,7 @@ class RouteRepository(private val db: AppDatabase,
             }
 
             routePoiDao.insertAll(routePois)
+            pendingSyncRepository.enqueueRouteCreate(userId = userId, routeId = routeId)
             routeId
         }
     }
@@ -142,10 +146,11 @@ class RouteRepository(private val db: AppDatabase,
 
     fun getRouteWithPois(routeId: Long): Flow<List<RoutePoiWithPoi>> = routePoiDao.getRouteWithPois(routeId)
 
-    suspend fun deleteRoute(routeId: Long) {
+    suspend fun deleteRoute(routeId: Long, userId: String) {
         db.withTransaction {
             routePoiDao.deletePoisForRoute(routeId)
             routeDao.deleteRouteById(routeId)
+            pendingSyncRepository.enqueueRouteDelete(userId = userId, routeId = routeId)
         }
     }
 

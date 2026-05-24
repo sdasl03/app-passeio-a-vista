@@ -1,11 +1,17 @@
 package com.example.passeiovista.ui
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.CloudQueue
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Route
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -13,6 +19,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,12 +31,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import com.example.passeiovista.data.model.FavoriteWithLocation
 import com.example.passeiovista.data.repositories.FavoriteRepository
 import com.example.passeiovista.data.repositories.PoiRepository
@@ -57,9 +67,16 @@ fun PasseioApp(
     favoriteRepository: FavoriteRepository,
     routeRepository: RouteRepository,
     userId: String,
+    isOffline: StateFlow<Boolean>,
+    forcedOffline: StateFlow<Boolean>,
+    onToggleForcedOffline: () -> Unit,
+    pendingSyncCount: Flow<Int>,
     modifier: Modifier = Modifier
 ) {
     val pois by poiRepository.getAllPois().collectAsState(initial = emptyList())
+    val offline by isOffline.collectAsState()
+    val forced by forcedOffline.collectAsState()
+    val pendingCount by pendingSyncCount.collectAsState(initial = 0)
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -96,6 +113,20 @@ fun PasseioApp(
                     )
                 },
                 actions = {
+                    BadgedBox(
+                        badge = {
+                            if (pendingCount > 0) {
+                                Badge { Text(pendingCount.toString()) }
+                            }
+                        }
+                    ) {
+                        IconButton(onClick = onToggleForcedOffline) {
+                            Icon(
+                                imageVector = if (forced) Icons.Outlined.CloudOff else Icons.Outlined.CloudQueue,
+                                contentDescription = "Modo offline"
+                            )
+                        }
+                    }
                     if (currentRoute == Destinations.Map || currentRoute == null) {
                         IconButton(onClick = { showFavorites = true }) {
                             Icon(
@@ -141,43 +172,50 @@ fun PasseioApp(
             }
         }
     ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = Destinations.Map,
-            modifier = Modifier.padding(padding)
-        ) {
-            composable(Destinations.Map) {
-                MapScreen(
-                    pois = pois,
-                    favoriteRepository = favoriteRepository,
-                    userId = userId,
-                    onUserLocationUpdated = {
-                        // TODO: Guardar as coordenadas reais do GPS para usar no Roteiro
-                    }
-                )
+        Column(Modifier.padding(padding).fillMaxSize()) {
+            if (offline) {
+                OfflineBanner(forcedOffline = forced, pendingCount = pendingCount)
             }
 
-            composable(Destinations.Routes) {
-                RoutesScreen(
-                    routeRepository = routeRepository,
-                    allPois = pois,
-                    userId = userId,
-                    onOpenRoute = { routeId ->
-                        navController.navigate(Destinations.routeDetail(routeId))
-                    }
-                )
-            }
+            NavHost(
+                navController = navController,
+                startDestination = Destinations.Map,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                composable(Destinations.Map) {
+                    MapScreen(
+                        pois = pois,
+                        favoriteRepository = favoriteRepository,
+                        userId = userId,
+                        onUserLocationUpdated = {
+                            // TODO: Guardar as coordenadas reais do GPS para usar no Roteiro
+                        }
+                    )
+                }
 
-            composable(
-                Destinations.RouteDetail,
-                arguments = listOf(navArgument("routeId") { type = NavType.LongType })
-            ) { entry ->
-                val routeId = entry.arguments?.getLong("routeId") ?: 0L
-                RouteDetailScreen(
-                    routeRepository = routeRepository,
-                    routeId = routeId,
-                    onBack = { navController.popBackStack() }
-                )
+                composable(Destinations.Routes) {
+                    RoutesScreen(
+                        routeRepository = routeRepository,
+                        allPois = pois,
+                        userId = userId,
+                        onOpenRoute = { routeId ->
+                            navController.navigate(Destinations.routeDetail(routeId))
+                        }
+                    )
+                }
+
+                composable(
+                    Destinations.RouteDetail,
+                    arguments = listOf(navArgument("routeId") { type = NavType.LongType })
+                ) { entry ->
+                    val routeId = entry.arguments?.getLong("routeId") ?: 0L
+                    RouteDetailScreen(
+                        routeRepository = routeRepository,
+                        routeId = routeId,
+                        userId = userId,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
         }
     }
@@ -212,6 +250,37 @@ fun PasseioApp(
                     }
                 }
             }
+        )
+    }
+}
+
+}
+
+@Composable
+private fun OfflineBanner(
+    forcedOffline: Boolean,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = if (forcedOffline) {
+                if (pendingCount > 0) {
+                    "Modo offline ativado. Favoritos e roteiros continuam disponíveis localmente. Pendentes de sincronização: $pendingCount."
+                } else {
+                    "Modo offline ativado. Favoritos e roteiros continuam disponíveis localmente."
+                }
+            } else {
+                if (pendingCount > 0) {
+                    "Sem ligação à Internet. Favoritos e roteiros continuam disponíveis localmente. Pendentes de sincronização: $pendingCount."
+                } else {
+                    "Sem ligação à Internet. Favoritos e roteiros continuam disponíveis localmente."
+                }
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
         )
     }
 }
