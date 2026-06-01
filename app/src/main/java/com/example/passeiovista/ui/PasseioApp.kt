@@ -254,11 +254,11 @@ fun PasseioApp(
     }
 }
 
-}
-
 @Composable
 private fun OfflineBanner(
     forcedOffline: Boolean,
+    pendingCount: Int,
+    modifier: Modifier = Modifier
 ) {
     Surface(
         color = MaterialTheme.colorScheme.errorContainer,
