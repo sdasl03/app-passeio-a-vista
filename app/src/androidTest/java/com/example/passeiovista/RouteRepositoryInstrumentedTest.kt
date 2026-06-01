@@ -6,9 +6,11 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.example.passeiovista.data.database.AppDatabase
 import com.example.passeiovista.data.entity.Category
 import com.example.passeiovista.data.entity.Poi
+import com.example.passeiovista.data.repositories.PendingSyncRepository
 import com.example.passeiovista.data.repositories.RouteRepository
 import com.google.common.truth.Truth.assertThat
 import java.time.LocalDateTime
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -20,6 +22,7 @@ import org.junit.runner.RunWith
 class RouteRepositoryInstrumentedTest {
     private lateinit var db: AppDatabase
     private lateinit var repo: RouteRepository
+    private lateinit var pendingSyncRepository: PendingSyncRepository
 
     @Before
     fun setup() = runTest {
@@ -60,7 +63,9 @@ class RouteRepositoryInstrumentedTest {
             )
         )
 
-        repo = RouteRepository(db, db.routeDao(), db.routePoiDao())
+        pendingSyncRepository =
+            PendingSyncRepository(db.pendingSyncOperationDao(), MutableStateFlow(true))
+        repo = RouteRepository(db, db.routeDao(), db.routePoiDao(), pendingSyncRepository)
     }
 
     @After
@@ -71,6 +76,7 @@ class RouteRepositoryInstrumentedTest {
     @Test
     fun createRoute_persistsRouteAndPois() = runTest {
         val userId = "u1"
+        assertThat(pendingSyncRepository.pendingCount.first()).isEqualTo(0)
         val routeId = repo.createRoute(
             name = "Roteiro Teste",
             userId = userId,
@@ -84,6 +90,7 @@ class RouteRepositoryInstrumentedTest {
 
         val routes = repo.getRoutesByUser(userId).first()
         assertThat(routes.map { it.id }).contains(routeId)
+        assertThat(pendingSyncRepository.pendingCount.first()).isEqualTo(1)
 
         val routePois = repo.getRoutePois(routeId).first()
         assertThat(routePois).hasSize(2)
@@ -105,9 +112,10 @@ class RouteRepositoryInstrumentedTest {
         assertThat(repo.getRoutesByUser(userId).first()).isNotEmpty()
         assertThat(repo.getRoutePois(routeId).first()).isNotEmpty()
 
-        repo.deleteRoute(routeId)
+        repo.deleteRoute(routeId = routeId, userId = userId)
 
         assertThat(repo.getRoutesByUser(userId).first()).isEmpty()
         assertThat(repo.getRoutePois(routeId).first()).isEmpty()
+        assertThat(pendingSyncRepository.pendingCount.first()).isEqualTo(2)
     }
 }

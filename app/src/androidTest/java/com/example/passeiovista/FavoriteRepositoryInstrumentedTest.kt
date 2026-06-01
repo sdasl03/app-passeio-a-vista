@@ -7,8 +7,10 @@ import com.example.passeiovista.data.database.AppDatabase
 import com.example.passeiovista.data.entity.Category
 import com.example.passeiovista.data.entity.Poi
 import com.example.passeiovista.data.repositories.FavoriteRepository
+import com.example.passeiovista.data.repositories.PendingSyncRepository
 import com.google.common.truth.Truth.assertThat
 import java.time.LocalDateTime
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -20,6 +22,7 @@ import org.junit.runner.RunWith
 class FavoriteRepositoryInstrumentedTest {
     private lateinit var db: AppDatabase
     private lateinit var repo: FavoriteRepository
+    private lateinit var pendingSyncRepository: PendingSyncRepository
 
     @Before
     fun setup() = runTest {
@@ -44,7 +47,9 @@ class FavoriteRepositoryInstrumentedTest {
                 updatedAt = LocalDateTime.now()
             )
         )
-        repo = FavoriteRepository(db.favoriteDao())
+        pendingSyncRepository =
+            PendingSyncRepository(db.pendingSyncOperationDao(), MutableStateFlow(true))
+        repo = FavoriteRepository(db.favoriteDao(), pendingSyncRepository)
     }
 
     @After
@@ -58,9 +63,12 @@ class FavoriteRepositoryInstrumentedTest {
         val poiId = "p1"
 
         assertThat(repo.getFavoritePoiIds(userId).first()).isEmpty()
+        assertThat(pendingSyncRepository.pendingCount.first()).isEqualTo(0)
         assertThat(repo.toggleFavorite(userId, poiId)).isTrue()
         assertThat(repo.getFavoritePoiIds(userId).first()).containsExactly(poiId)
+        assertThat(pendingSyncRepository.pendingCount.first()).isEqualTo(1)
         assertThat(repo.toggleFavorite(userId, poiId)).isFalse()
         assertThat(repo.getFavoritePoiIds(userId).first()).isEmpty()
+        assertThat(pendingSyncRepository.pendingCount.first()).isEqualTo(2)
     }
 }

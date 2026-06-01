@@ -9,7 +9,10 @@ import java.time.LocalDateTime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class FavoriteRepository( private val favoriteDao: FavoriteDao) {
+class FavoriteRepository(
+    private val favoriteDao: FavoriteDao,
+    private val pendingSyncRepository: PendingSyncRepository
+) {
 
     fun getFavoritesByUser(
         userId: String
@@ -36,6 +39,7 @@ class FavoriteRepository( private val favoriteDao: FavoriteDao) {
                 createdAt = LocalDateTime.now()
             )
         )
+        pendingSyncRepository.enqueueFavoriteAdd(userId = userId, poiId = poiId)
     }
 
     suspend fun removeFavorite(
@@ -43,6 +47,7 @@ class FavoriteRepository( private val favoriteDao: FavoriteDao) {
         poiId: String
     ) {
         favoriteDao.deleteFavorite(userId = userId, poiId = poiId)
+        pendingSyncRepository.enqueueFavoriteRemove(userId = userId, poiId = poiId)
     }
 
     suspend fun toggleFavorite(

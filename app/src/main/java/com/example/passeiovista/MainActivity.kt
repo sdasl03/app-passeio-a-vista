@@ -5,9 +5,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
+import com.example.passeiovista.core.NetworkMonitor
+import com.example.passeiovista.core.OfflineOverrideStore
+import com.example.passeiovista.core.OfflineStatusStore
 import com.example.passeiovista.data.database.DatabaseProvider
 import com.example.passeiovista.data.database.DatabaseSeeder
 import com.example.passeiovista.data.repositories.FavoriteRepository
+import com.example.passeiovista.data.repositories.PendingSyncRepository
 import com.example.passeiovista.data.repositories.PoiRepository
 import com.example.passeiovista.data.repositories.RouteRepository
 import com.example.passeiovista.ui.PasseioApp
@@ -19,9 +23,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val db = DatabaseProvider.get(this)
         val poiRepository = PoiRepository(db.poiDao())
-        val favoriteRepository = FavoriteRepository(db.favoriteDao())
-        val routeRepository = RouteRepository(db, db.routeDao(), db.routePoiDao())
         val userId = "user_demo"
+        val networkMonitor = NetworkMonitor(applicationContext)
+        val offlineOverrideStore = OfflineOverrideStore(applicationContext)
+        val offlineStatusStore = OfflineStatusStore(networkMonitor, offlineOverrideStore)
+        val pendingSyncRepository =
+            PendingSyncRepository(db.pendingSyncOperationDao(), offlineStatusStore.isOffline)
+        val favoriteRepository = FavoriteRepository(db.favoriteDao(), pendingSyncRepository)
+        val routeRepository = RouteRepository(db, db.routeDao(), db.routePoiDao(), pendingSyncRepository)
 
         lifecycleScope.launch {
             DatabaseSeeder(
@@ -40,7 +49,11 @@ class MainActivity : ComponentActivity() {
                     poiRepository = poiRepository,
                     favoriteRepository = favoriteRepository,
                     routeRepository = routeRepository,
-                    userId = userId
+                    userId = userId,
+                    isOffline = offlineStatusStore.isOffline,
+                    forcedOffline = offlineOverrideStore.forcedOffline,
+                    onToggleForcedOffline = { offlineOverrideStore.toggle() },
+                    pendingSyncCount = pendingSyncRepository.pendingCount
                 )
             }
         }

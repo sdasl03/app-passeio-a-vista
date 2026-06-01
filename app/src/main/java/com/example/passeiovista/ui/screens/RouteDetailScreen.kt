@@ -45,6 +45,7 @@ sealed interface RouteDetailUiState {
 fun RouteDetailScreen(
     routeRepository: RouteRepository,
     routeId: Long,
+    userId: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -87,7 +88,7 @@ fun RouteDetailScreen(
                 IconButton(
                     onClick = {
                         scope.launch {
-                            routeRepository.deleteRoute(routeId)
+                            routeRepository.deleteRoute(routeId = routeId, userId = userId)
                             onBack()
                         }
                     }
