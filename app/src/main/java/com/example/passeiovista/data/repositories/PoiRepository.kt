@@ -9,6 +9,18 @@ class PoiRepository(
 ) {
     fun getAllPois(): Flow<List<Poi>> = poiDao.getAllPois()
 
+    fun getPoisInBounds(
+        south: Double,
+        north: Double,
+        west: Double,
+        east: Double
+    ): Flow<List<Poi>> = poiDao.getPoisInBounds(
+        south = south,
+        north = north,
+        west = west,
+        east = east
+    )
+
     fun getPoisByCategory(categoryId: String): Flow<List<Poi>> =
         poiDao.getPoisByCategory(categoryId)
 

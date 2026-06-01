@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,6 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -215,102 +217,107 @@ private fun CreateRouteSheet(
     var selected by remember { mutableStateOf<Set<String>>(emptySet()) }
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
+        sheetState = sheetState,
         modifier = modifier
     ) {
-        ListItem(
-            headlineContent = { Text("Novo roteiro") },
-            trailingContent = {
-                IconButton(onClick = onDismissRequest) {
-                    Icon(Icons.Outlined.Close, contentDescription = "Fechar")
-                }
-            }
-        )
-        HorizontalDivider()
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                singleLine = true,
-                label = { Text("Nome do roteiro") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Text(
-                text = "Seleciona POIs",
-                style = MaterialTheme.typography.titleSmall
-            )
-        }
-
-        LazyColumn(
-            contentPadding = PaddingValues(bottom = 96.dp)
-        ) {
-            items(
-                items = allPois,
-                key = { it.id }
-            ) { poi ->
-                val checked = selected.contains(poi.id)
-                ListItem(
-                    headlineContent = { Text(poi.name) },
-                    leadingContent = {
-                        Checkbox(
-                            checked = checked,
-                            onCheckedChange = { isChecked ->
-                                selected = if (isChecked) selected + poi.id else selected - poi.id
-                            }
-                        )
+        Column(modifier = Modifier.fillMaxSize()) {
+            ListItem(
+                headlineContent = { Text("Novo roteiro") },
+                trailingContent = {
+                    IconButton(onClick = onDismissRequest) {
+                        Icon(Icons.Outlined.Close, contentDescription = "Fechar")
                     }
+                }
+            )
+            HorizontalDivider()
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    singleLine = true,
+                    label = { Text("Nome do roteiro") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = "Seleciona POIs (${selected.size})",
+                    style = MaterialTheme.typography.titleSmall
                 )
             }
-        }
 
-        error?.let { msg ->
-            Text(
-                text = msg,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 8.dp)
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Button(
-                onClick = {
-                    if (busy) return@Button
-                    val trimmed = name.trim()
-                    if (trimmed.isBlank()) {
-                        error = "Indica um nome para o roteiro."
-                        return@Button
-                    }
-                    val selectedPois = allPois.filter { selected.contains(it.id) }
-                    if (selectedPois.isEmpty()) {
-                        error = "Seleciona pelo menos um POI."
-                        return@Button
-                    }
-                    busy = true
-                    error = null
-                    onCreate(trimmed, selectedPois)
-                }
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(bottom = 12.dp)
             ) {
-                Text("Criar")
-                if (busy) {
-                    Spacer(Modifier.width(12.dp))
-                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
+                items(
+                    items = allPois,
+                    key = { it.id }
+                ) { poi ->
+                    val checked = selected.contains(poi.id)
+                    ListItem(
+                        headlineContent = { Text(poi.name) },
+                        leadingContent = {
+                            Checkbox(
+                                checked = checked,
+                                onCheckedChange = { isChecked ->
+                                    selected = if (isChecked) selected + poi.id else selected - poi.id
+                                }
+                            )
+                        }
+                    )
+                }
+            }
+
+            error?.let { msg ->
+                Text(
+                    text = msg,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 8.dp)
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = {
+                        if (busy) return@Button
+                        val trimmed = name.trim()
+                        if (trimmed.isBlank()) {
+                            error = "Indica um nome para o roteiro."
+                            return@Button
+                        }
+                        val selectedPois = allPois.filter { selected.contains(it.id) }
+                        if (selectedPois.isEmpty()) {
+                            error = "Seleciona pelo menos um POI."
+                            return@Button
+                        }
+                        busy = true
+                        error = null
+                        onCreate(trimmed, selectedPois)
+                    }
+                ) {
+                    Text("Validar e criar")
+                    if (busy) {
+                        Spacer(Modifier.width(12.dp))
+                        CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
+                    }
                 }
             }
         }

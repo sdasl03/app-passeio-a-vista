@@ -44,6 +44,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -58,7 +59,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.example.passeiovista.data.entity.Poi
 import com.example.passeiovista.data.repositories.FavoriteRepository
+import com.example.passeiovista.data.repositories.PoiRepository
+import com.example.passeiovista.data.repositories.TourismPoiRemoteRepository
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import org.osmdroid.events.MapListener
+import org.osmdroid.events.ScrollEvent
+import org.osmdroid.events.ZoomEvent
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -69,7 +77,8 @@ import org.osmdroid.views.overlay.Marker
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
-    pois: List<Poi>,
+    poiRepository: PoiRepository,
+    tourismPoiRemoteRepository: TourismPoiRemoteRepository,
     favoriteRepository: FavoriteRepository,
     userId: String,
     onUserLocationUpdated: (Location?) -> Unit,
@@ -84,9 +93,35 @@ fun MapScreen(
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var favoriteBusy by remember { mutableStateOf(false) }
     var favoriteError by remember { mutableStateOf<String?>(null) }
+    var askedLocationPermission by remember { mutableStateOf(false) }
+    var didCenterOnUser by remember { mutableStateOf(false) }
 
     val favoritePoiIds by favoriteRepository.getFavoritePoiIds(userId)
         .collectAsState(initial = emptySet())
+
+    var bounds by remember {
+        mutableStateOf(
+            Bounds(
+                south = 41.13,
+                north = 41.18,
+                west = -8.67,
+                east = -8.57
+            )
+        )
+    }
+
+    val pois by produceState<List<Poi>>(
+        initialValue = emptyList(),
+        key1 = poiRepository,
+        key2 = bounds
+    ) {
+        poiRepository.getPoisInBounds(
+            south = bounds.south,
+            north = bounds.north,
+            west = bounds.west,
+            east = bounds.east
+        ).collect { value = it }
+    }
 
     val onSelectPoi by rememberUpdatedState<(Poi) -> Unit> { poi ->
         selectedPoi = poi
@@ -100,15 +135,64 @@ fun MapScreen(
         if (granted) {
             userLocation = getLastKnownLocation(context)
             onUserLocationUpdated(userLocation)
-            userLocation?.let { loc ->
-                mapView?.controller?.animateTo(GeoPoint(loc.latitude, loc.longitude))
-                mapView?.controller?.setZoom(16.0)
-            }
         }
     }
 
     LaunchedEffect(Unit) {
         Configuration.getInstance().userAgentValue = context.packageName
+    }
+
+    var refreshJob by remember { mutableStateOf<Job?>(null) }
+
+    LaunchedEffect(mapView) {
+        val map = mapView ?: return@LaunchedEffect
+        val bb = map.boundingBox
+        bounds = Bounds(
+            south = bb.latSouth,
+            north = bb.latNorth,
+            west = bb.lonWest,
+            east = bb.lonEast
+        )
+        refreshJob?.cancel()
+        refreshJob = scope.launch {
+            try {
+                tourismPoiRemoteRepository.refreshTourismPoisInBounds(
+                    south = bounds.south,
+                    north = bounds.north,
+                    west = bounds.west,
+                    east = bounds.east
+                )
+            } catch (_: Throwable) {
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val hasPermission =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+        if (hasPermission) {
+            userLocation = getLastKnownLocation(context)
+            onUserLocationUpdated(userLocation)
+        } else if (!askedLocationPermission) {
+            askedLocationPermission = true
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        }
+    }
+
+    LaunchedEffect(userLocation, mapView) {
+        val loc = userLocation ?: return@LaunchedEffect
+        val map = mapView ?: return@LaunchedEffect
+        if (didCenterOnUser) return@LaunchedEffect
+        didCenterOnUser = true
+        map.controller?.animateTo(GeoPoint(loc.latitude, loc.longitude))
+        map.controller?.setZoom(16.0)
     }
 
     DisposableEffect(lifecycleOwner, mapView) {
@@ -135,9 +219,40 @@ fun MapScreen(
                     overlays.add(markersOverlay)
                     controller.setZoom(14.0)
 
-                    val initial = pois.firstOrNull()?.let { GeoPoint(it.latitude, it.longitude) }
-                        ?: GeoPoint(41.1496, -8.6109)
+                    val initial = GeoPoint(41.1496, -8.6109)
                     controller.setCenter(initial)
+
+                    addMapListener(object : MapListener {
+                        override fun onScroll(event: ScrollEvent?): Boolean {
+                            val bb = boundingBox
+                            bounds = Bounds(
+                                south = bb.latSouth,
+                                north = bb.latNorth,
+                                west = bb.lonWest,
+                                east = bb.lonEast
+                            )
+
+                            refreshJob?.cancel()
+                            refreshJob = scope.launch {
+                                delay(600)
+                                try {
+                                    tourismPoiRemoteRepository.refreshTourismPoisInBounds(
+                                        south = bounds.south,
+                                        north = bounds.north,
+                                        west = bounds.west,
+                                        east = bounds.east
+                                    )
+                                } catch (_: Throwable) {
+                                }
+                            }
+
+                            return true
+                        }
+
+                        override fun onZoom(event: ZoomEvent?): Boolean {
+                            return onScroll(null)
+                        }
+                    })
 
                     mapView = this
                 }
@@ -355,6 +470,13 @@ fun MapScreen(
         }
     }
 }
+
+private data class Bounds(
+    val south: Double,
+    val north: Double,
+    val west: Double,
+    val east: Double
+)
 
 private fun getLastKnownLocation(context: Context): Location? {
     val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager

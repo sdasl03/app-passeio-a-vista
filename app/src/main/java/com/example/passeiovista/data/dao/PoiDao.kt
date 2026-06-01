@@ -12,6 +12,16 @@ interface PoiDao {
     @Query("SELECT * FROM pois ORDER BY name ASC")
     fun getAllPois(): Flow<List<Poi>>
 
+    @Query(
+        "SELECT * FROM pois WHERE latitude BETWEEN :south AND :north AND longitude BETWEEN :west AND :east ORDER BY name ASC"
+    )
+    fun getPoisInBounds(
+        south: Double,
+        north: Double,
+        west: Double,
+        east: Double
+    ): Flow<List<Poi>>
+
     @Query("SELECT * FROM pois WHERE categoryId = :categoryId ORDER BY name ASC")
     fun getPoisByCategory(categoryId: String): Flow<List<Poi>>
 

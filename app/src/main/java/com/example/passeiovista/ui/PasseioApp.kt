@@ -44,6 +44,7 @@ import com.example.passeiovista.data.model.FavoriteWithLocation
 import com.example.passeiovista.data.repositories.FavoriteRepository
 import com.example.passeiovista.data.repositories.PoiRepository
 import com.example.passeiovista.data.repositories.RouteRepository
+import com.example.passeiovista.data.repositories.TourismPoiRemoteRepository
 import com.example.passeiovista.ui.screens.FavoritesSheet
 import com.example.passeiovista.ui.screens.MapScreen
 import com.example.passeiovista.ui.screens.RouteDetailScreen
@@ -64,6 +65,7 @@ private object Destinations {
 @Composable
 fun PasseioApp(
     poiRepository: PoiRepository,
+    tourismPoiRemoteRepository: TourismPoiRemoteRepository,
     favoriteRepository: FavoriteRepository,
     routeRepository: RouteRepository,
     userId: String,
@@ -184,7 +186,8 @@ fun PasseioApp(
             ) {
                 composable(Destinations.Map) {
                     MapScreen(
-                        pois = pois,
+                        poiRepository = poiRepository,
+                        tourismPoiRemoteRepository = tourismPoiRemoteRepository,
                         favoriteRepository = favoriteRepository,
                         userId = userId,
                         onUserLocationUpdated = {
