@@ -45,7 +45,7 @@ object DatabaseProvider {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "passeio_a_vista.db"
-            ).addMigrations(MIGRATION_1_2).build()
+            ).addMigrations(MIGRATION_1_2).fallbackToDestructiveMigration().build()
 
             instance = created
             created
