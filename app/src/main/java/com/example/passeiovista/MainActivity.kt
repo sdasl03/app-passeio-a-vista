@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.Theme_PasseioÀVista)
         super.onCreate(savedInstanceState)
         val db = DatabaseProvider.get(this)
         db.openHelper.writableDatabase.execSQL(
